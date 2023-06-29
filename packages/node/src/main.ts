@@ -6,14 +6,16 @@ import {Configuration, OpenAIApi} from "openai";
 const generateAudioPath = () => {
   let addNumCount = 0;
   let readNumCount = 0;
+  let deleteNumCount = 0;
 
   return {
     addFile: () => `audio_part_${++addNumCount}.mp3`,
+    deleteFile: () => `audio_part_${++deleteNumCount}.mp3`,
     readFile: () => `audio_part_${++readNumCount}.mp3`,
   }
 }
 
-const { addFile, readFile } = generateAudioPath();
+const { addFile, deleteFile, readFile } = generateAudioPath();
 
 
 function videoToAudioChunks(videoPath, outputDir, chunkSizeMB = 4) {
@@ -45,6 +47,7 @@ function videoToAudioChunks(videoPath, outputDir, chunkSizeMB = 4) {
       .on('end', () => {
         if (writeStream) {
           writeStream.end();
+          audioChunksToText(readFile());
         }
       });
   });
@@ -54,7 +57,7 @@ async function audioChunksToText(filePath: string) {
   try {
     const configuration = new Configuration({
       organization: "org-wifCiRmsXjUtw09PqWxLVuhH",
-      apiKey: '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',
+      apiKey: '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',
     });
 
     const fileUrl = path.resolve(`./output/${filePath}`);
@@ -68,7 +71,21 @@ async function audioChunksToText(filePath: string) {
       'ru',
     );
 
-    console.log('response', response.data);
+    fs.unlink(`./output/${deleteFile()}`, (error) => {
+      if (error) {
+        console.error('Error deleting file:', error);
+      } else {
+        console.log('File deleted successfully');
+      }
+    });
+
+    fs.appendFile(path.resolve('./assets/result.text'), response.data as any as string, (error) => {
+      if (error) {
+        console.error('Error appending to file:', error);
+      } else {
+        console.log('Text appended to file successfully');
+      }
+    });
   } catch (e) {
     console.log('Error is ', e);
   }
